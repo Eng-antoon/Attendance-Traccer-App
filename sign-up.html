@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up - Attendance Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase App and Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-firestore.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdRdy9EIlf9cqumCJDKmT-LBo-0buyxfE",
+            authDomain: "ragaa2.firebaseapp.com",
+            projectId: "ragaa2",
+            storageBucket: "ragaa2.appspot.com",
+            messagingSenderId: "1043709314283",
+            appId: "1:1043709314283:web:bf7e3fc81be7540277eaae",
+            measurementId: "G-VPN7L61FZT"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Sign Up</h1>
+        <form id="signUpForm">
+            <label for="signUpEmail">Email:</label>
+            <input type="email" id="signUpEmail" required>
+            <label for="signUpPassword">Password:</label>
+            <input type="password" id="signUpPassword" required>
+            <label for="signUpRole">Role:</label>
+            <select id="signUpRole" required>
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+                <option value="superadmin">Super Admin</option>
+            </select>
+            <button type="submit">Sign Up</button>
+        </form>
+        <p>Already have an account? <a href="sign-in.html">Sign In</a></p>
+    </div>
+    <script src="scripts.js"></script>
+</body>
+</html>

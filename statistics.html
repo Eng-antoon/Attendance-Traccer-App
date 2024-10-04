@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Statistics for Attendance</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase App and Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-firestore.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdRdy9EIlf9cqumCJDKmT-LBo-0buyxfE",
+            authDomain: "ragaa2.firebaseapp.com",
+            projectId: "ragaa2",
+            storageBucket: "ragaa2.appspot.com",
+            messagingSenderId: "1043709314283",
+            appId: "1:1043709314283:web:bf7e3fc81be7540277eaae",
+            measurementId: "G-VPN7L61FZT"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Statistics for Attendance</h1>
+        <button class="control-button" onclick="location.href='index.html'">Back to Tracker</button>
+        <button class="control-button" onclick="logout()">Logout</button>
+        <div class="chart-container">
+            <canvas id="attendanceChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="monthlyAttendanceChart"></canvas>
+        </div>
+    </div>
+    <script src="scripts.js"></script>
+    <script src="statistics.js"></script>
+</body>
+</html>
