@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Tracker</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Choices.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+    
+    <!-- Firebase Configuration -->
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <!-- Firebase Services -->
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-auth.js"></script>
+    
+    <!-- Firebase Initialization -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAdRdy9EIlf9cqumCJDKmT-LBo-0buyxfE",
+            authDomain: "ragaa2.firebaseapp.com",
+            projectId: "ragaa2",
+            storageBucket: "ragaa2.appspot.com",
+            messagingSenderId: "1043709314283",
+            appId: "1:1043709314283:web:bf7e3fc81be7540277eaae",
+            measurementId: "G-VPN7L61FZT"
+        };
+        firebase.initializeApp(firebaseConfig);
+    </script>
+    
+    <!-- XLSX.js for Excel file generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+    
+    <!-- Choices.js -->
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+</head>
+<body>
+    <!-- Sign-in Modal -->
+    <div id="signInModal" class="modal show" role="dialog" aria-labelledby="signInTitle" aria-modal="true">
+        <div class="modal-content gradient-background">
+            <h2 id="signInTitle">Sign In</h2>
+            <form id="signInForm">
+                <label for="signInEmail">Email:</label>
+                <input type="email" id="signInEmail" required aria-required="true" aria-describedby="emailHelp">
+                <small id="emailHelp">We'll never share your email with anyone else.</small>
+                <label for="signInPassword">Password:</label>
+                <input type="password" id="signInPassword" required aria-required="true">
+                <button type="submit">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sign-up Modal (accessible only by SuperAdmin) -->
+    <div id="signUpModal" class="modal hidden" role="dialog" aria-labelledby="signUpTitle" aria-modal="true">
+        <div class="modal-content gradient-background">
+            <span class="close" onclick="closeForm('signUpModal')">&times;</span>
+            <h2 id="signUpTitle">Create User</h2>
+            <form id="signUpForm">
+                <label for="signUpEmail">Email:</label>
+                <input type="email" id="signUpEmail" required>
+                <label for="signUpPassword">Password:</label>
+                <input type="password" id="signUpPassword" required>
+                <label for="signUpRole">Role:</label>
+                <select id="signUpRole" required>
+                    <option value="">Select Role</option>
+                    <option value="SuperAdmin">SuperAdmin</option>
+                    <option value="Full Viewer">Full Viewer</option>
+                    <option value="Full Editor">Full Editor</option>
+                    <!-- Class-Specific Roles -->
+                    <optgroup label="Classes">
+                        <option value="motkadem Viewer">motkadem Viewer</option>
+                        <option value="motkadem Editor">motkadem Editor</option>
+                        <option value="kashaf Viewer">kashaf Viewer</option>
+                        <option value="kashaf Editor">kashaf Editor</option>
+                        <option value="zahrat Viewer">zahrat Viewer</option>
+                        <option value="zahrat Editor">zahrat Editor</option>
+                        <option value="gawala Viewer">gawala Viewer</option>
+                        <option value="gawala Editor">gawala Editor</option>
+                        <option value="bara3em Viewer">bara3em Viewer</option>
+                        <option value="bara3em Editor">bara3em Editor</option>
+                        <option value="ashbal Viewer">ashbal Viewer</option>
+                        <option value="ashbal Editor">ashbal Editor</option>
+                        <option value="ra2edat Viewer">ra2edat Viewer</option>
+                        <option value="ra2edat Editor">ra2edat Editor</option>
+                        <!-- Add more classes as needed -->
+                    </optgroup>
+                </select>
+                <button type="submit">Create User</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="container hidden" id="mainContent">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="navbar-brand">Attendance Tracker</div>
+            <div class="navbar-menu" id="navbarMenu">
+                <button class="control-button" data-action="addRecordForm">Add Record</button>
+                <button class="control-button" data-action="addPersonForm">Add Person</button>
+                <button class="control-button" data-action="bulkAttendanceForm">Add Bulk Attendance</button>
+                <button class="control-button" data-action="calendar">Monthly View</button>
+                <button class="control-button" data-action="table">Table View</button>
+                <button class="control-button" data-action="downloadMonthlyData">Download Monthly Data</button>
+                <button class="control-button" data-action="statistics">Statistics</button>
+                <button class="control-button" data-action="viewPersonForm">View/Edit Person</button>
+                <!-- Only visible to SuperAdmin -->
+                <button class="control-button" id="addUserButton" onclick="openForm('signUpModal')">+ Create User</button>
+                <button class="control-button" id="logoutButton">Logout</button>
+            </div>
+            <div class="hamburger-menu" id="hamburgerMenu" aria-label="Menu">&#9776;</div>
+        </nav>
+
+        <!-- Main Content -->
+        <h1>Attendance Tracker</h1>
+        <div class="controls">
+            <!-- Class Selection -->
+            <label for="classSelect">Select Class:</label>
+            <select id="classSelect">
+                <!-- Options will be populated dynamically -->
+            </select>
+        </div>
+        <div class="filters-container">
+            <div class="search-bar">
+                <input type="text" id="nameSearch" placeholder="Search by Name">
+            </div>
+            <div class="filter-dropdown">
+                <button id="filterbutton" class="filter-button" onclick="toggleFilterDropdown()">Filter by</button>
+                <div id="filterDropdownContent" class="modal hidden" onclick="closeModal(event)">
+                    <div class="modal-content" onclick="event.stopPropagation()">
+                        <span class="close" onclick="closeForm('filterDropdownContent')">&times;</span>
+                        <h3>Filters</h3>
+                        <label for="filterName">Filter by Name: </label>
+                        <select id="filterName" multiple></select>
+                        <label for="filterDate">Filter by Date: </label>
+                        <input type="date" id="filterDate">
+                        <button class="submit-button" onclick="applyFilters()">Apply</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div id="calendarView" class="hidden">
+            <div class="calendar-header">
+                <button class="calendar-nav-button" id="prevMonthButton" onclick="changeMonth(-1)">&#10094;</button>
+                <span id="currentMonthYear" class="calendar-month"></span>
+                <button class="calendar-nav-button" id="nextMonthButton" onclick="changeMonth(1)">&#10095;</button>
+            </div>
+            <div class="calendar" id="calendar"></div>
+        </div>
+
+        <!-- Table View -->
+        <div id="tableView" class="hidden">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Name</th>
+                            <th>Date</th>
+                            <th>Attendance</th>
+                            <th>Description</th>
+                            <th>Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendanceTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modals and Forms -->
+        <!-- Add Record Form -->
+        <div id="addRecordForm" class="modal hidden" role="dialog" aria-labelledby="addRecordTitle" aria-modal="true" onclick="closeModal(event)">
+            <div class="modal-content gradient-background">
+                <span class="close" onclick="closeForm('addRecordForm')">&times;</span>
+                <h3 id="addRecordTitle">Add Record</h3>
+                        <!-- Error Message Container -->
+        <div id="addRecordError" class="error-message"></div>
+
+                <label for="recordClass">اختر الوحده:</label>
+                <select id="recordClass" required>
+                    <option value="motkadem">motkadem</option>
+                    <option value="kashaf">kashaf</option>
+                    <option value="zahrat">zahrat</option>
+                    <option value="gawala">gawala</option>
+                    <option value="bara3em">bara3em</option>
+                    <option value="ashbal">ashbal</option>
+                    <option value="ra2edat">ra2edat</option>
+                    <!-- Class options will be populated dynamically -->
+                </select>
+                
+                
+                <label for="recordName">اكتب الاسم:</label>
+                
+                <!-- Correct HTML for Choices.js single-select -->
+                <select id="recordName" required multiple></select>
+
+
+                <label for="recordDate">Date: </label>
+                <input type="date" id="recordDate" required>
+                <label for="recordAttendance">Attendance: </label>
+                <select id="recordAttendance" onchange="toggleDescription()">
+                    <option value="Attended">Attended</option>
+                    <option value="Absent">Absent</option>
+                    <option value="Excused">Excused</option>
+                </select>
+                <label for="recordDescription" id="descriptionLabel" class="hidden">Description: </label>
+                <input type="text" id="recordDescription" class="hidden">
+                <button class="submit-button" onclick="addRecord()">Submit</button>
+            </div>
+        </div>
+
+        <!-- Add Person Form -->
+        <div id="addPersonForm" class="modal hidden" role="dialog" aria-labelledby="addPersonTitle" aria-modal="true" onclick="closeModal(event)">
+            <div class="modal-content gradient-background" onclick="event.stopPropagation()">
+                <span class="close" onclick="closeForm('addPersonForm')">&times;</span>
+                <h3 id="addPersonTitle">Add Person</h3>
+                <label for="personUnit">اختر الوحده:</label>
+                <select id="personUnit" required>
+                    <option value="">Select Unit</option>
+                    <option value="motkadem">motkadem</option>
+                    <option value="kashaf">kashaf</option>
+                    <option value="zahrat">zahrat</option>
+                    <option value="gawala">gawala</option>
+                    <option value="bara3em">bara3em</option>
+                    <option value="ashbal">ashbal</option>
+                    <option value="ra2edat">ra2edat</option>
+                    <!-- Add more classes as needed -->
+                </select>
+                <label for="personName">اكتب الاسم:</label>
+                <input type="text" id="personName" required>
+                <label for="personAddress">العنوان:</label>
+                <input type="text" id="personAddress" required>
+                <label for="personDOB">تاريخ الميلاد:</label>
+                <input type="date" id="personDOB" required>
+                <label for="personMobile">الموبيل:</label>
+                <input type="text" id="personMobile" required>
+                <label for="personPhone">رقم التليفون:</label>
+                <input type="text" id="personPhone" required>
+                <label for="personEmail">Email:</label>
+                <input  type="email" id="personEmail" required>
+                <label for="personSchool">المدرسة:</label>
+                <input type="text" id="personSchool" required>
+                <label for="personAcademicYear">السنة الدراسية (التى ظهرت نتيجتها):</label>
+                <input type="text" id="personAcademicYear" required>
+                <label for="personFamily">الاسرة:</label>
+                <input type="text" id="personFamily" required>
+                <label for="personServant">اسم الخادم/الخادمة:</label>
+                <input type="text" id="personServant" required>
+                <label for="personAffiliation">اب الاعتراف:</label>
+                <input type="text" id="personAffiliation" required>
+                <label for="personChurch">كنيسة اب الاعتراف:</label>
+                <input type="text" id="personChurch" required>
+                <label for="personFolar">استلمت الفولار ؟:</label>
+                <select id="personFolar" required>
+                    <option value="">Select Option</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                </select>
+                <button class="submit-button" onclick="addPerson()">Submit</button>
+            </div>
+        </div>
+
+        <!-- Bulk Attendance Form -->
+        <div id="bulkAttendanceForm" class="modal hidden" role="dialog" aria-labelledby="bulkAttendanceTitle" aria-modal="true" onclick="closeModal(event)">
+            <div class="modal-content gradient-background" onclick="event.stopPropagation()">
+                <span class="close" onclick="closeForm('bulkAttendanceForm')">&times;</span>
+                <h3 id="bulkAttendanceTitle">Add Bulk Attendance</h3>
+                <label for="bulkRecordClass">اختر الوحده:</label>
+                <select id="bulkRecordClass" required>
+                    <option value="">Select Unit</option>
+                    <option value="motkadem">motkadem</option>
+                    <option value="kashaf">kashaf</option>
+                    <option value="zahrat">zahrat</option>
+                    <option value="gawala">gawala</option>
+                    <option value="bara3em">bara3em</option>
+                    <option value="ashbal">ashbal</option>
+                    <option value="ra2edat">ra2edat</option>
+                    <!-- Add more classes as needed -->
+                </select>
+                <label for="bulkRecordNames">اكتب الاسماء:</label>
+                <select id="bulkRecordNames" multiple></select>
+                <label for="bulkRecordDate">Date: </label>
+                <input type="date" id="bulkRecordDate" required>
+                <label for="bulkRecordAttendance">Attendance: </label>
+                <select id="bulkRecordAttendance" required>
+                    <option value="Attended">Attended</option>
+                    <option value="Absent">Absent</option>
+                    <option value="Excused">Excused</option>
+                </select>
+                <button class="submit-button" onclick="addBulkAttendance()">Submit</button>
+            </div>
+        </div>
+
+<!-- Edit Record Form -->
+<div id="editRecordForm" class="modal hidden" role="dialog" aria-labelledby="editRecordTitle" aria-modal="true" onclick="closeModal(event)">
+    <div class="modal-content gradient-background" onclick="event.stopPropagation()">
+        <span class="close" onclick="closeForm('editRecordForm')">&times;</span>
+        <h3 id="editRecordTitle">Edit Record</h3>
+        
+        <!-- Error Message Container -->
+        <div id="editRecordError" class="error-message"></div>
+        
+        <label for="editRecordClass">Unit:</label>
+        <input type="text" id="editRecordClass" readonly>
+        <label for="editRecordName">Name:</label>
+        <input type="text" id="editRecordName" readonly>
+
+        <label for="editRecordDate">Date: </label>
+        <input type="date" id="editRecordDate" required>
+        <label for="editRecordAttendance">Attendance: </label>
+        <select id="editRecordAttendance" onchange="toggleEditDescription()" required>
+            <option value="Attended">Attended</option>
+            <option value="Absent">Absent</option>
+            <option value="Excused">Excused</option>
+        </select>
+        <label for="editRecordDescription" id="editDescriptionLabel" class="hidden">Description: </label>
+        <input type="text" id="editRecordDescription" class="hidden">
+        <button class="submit-button" onclick="updateRecord()">Update</button>
+    </div>
+</div>
+        <!-- View/Edit Person Form -->
+        <div id="viewPersonForm" class="modal hidden" role="dialog" aria-labelledby="viewPersonTitle" aria-modal="true" onclick="closeModal(event)">
+            <div class="modal-content gradient-background" onclick="event.stopPropagation()">
+                <span class="close" onclick="closeForm('viewPersonForm')">&times;</span>
+                <h3 id="viewPersonTitle">View/Edit Person</h3>
+                <label for="viewPersonUnit">اختر الوحده:</label>
+                <select id="viewPersonUnit" required>
+                    <option value="">Select Unit</option>
+                    <option value="motkadem">motkadem</option>
+                    <option value="kashaf">kashaf</option>
+                    <option value="zahrat">zahrat</option>
+                    <option value="gawala">gawala</option>
+                    <option value="bara3em">bara3em</option>
+                    <option value="ashbal">ashbal</option>
+                    <option value="ra2edat">ra2edat</option>
+                    <!-- Add more classes as needed -->
+                </select>
+                <label for="viewPersonSelect">اكتب الاسم:</label>
+                <select id="viewPersonSelect" onchange="loadPersonData()" required multiple></select>
+                <div id="personData" class="hidden">
+                    <label for="viewPersonAddress">العنوان:</label>
+                    <input type="text" id="viewPersonAddress">
+                    <label for="viewPersonDOB">تاريخ الميلاد:</label>
+                    <input type="date" id="viewPersonDOB">
+                    <label for="viewPersonMobile">الموبيل:</label>
+                    <input type="text" id="viewPersonMobile">
+                    <label for="viewPersonPhone">رقم التليفون:</label>
+                    <input type="text" id="viewPersonPhone">
+                    <label for="viewPersonEmail">Email:</label>
+                    <input type="email" id="viewPersonEmail">
+                    <label for="viewPersonSchool">المدرسة:</label>
+                    <input type="text" id="viewPersonSchool">
+                    <label for="viewPersonAcademicYear">السنة الدراسية (التى ظهرت نتيجتها):</label>
+                    <input type="text" id="viewPersonAcademicYear">
+                    <label for="viewPersonFamily">الاسرة:</label>
+                    <input type="text" id="viewPersonFamily">
+                    <label for="viewPersonServant">اسم الخادم/الخادمة:</label>
+                    <input type="text" id="viewPersonServant">
+                    <label for="viewPersonAffiliation">اب الاعتراف:</label>
+                    <input type="text" id="viewPersonAffiliation">
+                    <label for="viewPersonChurch">كنيسة اب الاعتراف:</label>
+                    <input type="text" id="viewPersonChurch">
+                    <label for="viewPersonFolar">استلمت الفولار ؟:</label>
+                    <select id="viewPersonFolar">
+                        <option value="">Select Option</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                    <button class="submit-button" onclick="editPersonData()">Edit</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden"></div>
+
+    <!-- External JS -->
+    <script src="scripts.js"></script>
+</body>
+</html>
